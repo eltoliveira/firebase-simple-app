@@ -1,35 +1,72 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import { useEffect, useState } from "react";
+import { db } from './firebaseConfig'
+import { collection, getDocs, addDoc, doc, updateDoc, deleteDoc } from "@firebase/firestore";
+import "./index.css";
 
 function App() {
-  const [count, setCount] = useState(0)
+    const [users, setUsers] = useState([])
+    const [name, setName] = useState("")
+    const [age, setAge] = useState(0)
+    const UsersCollectionRef = collection(db, "users")
+
+    useEffect(() => {
+    const getUsersData = async () => {
+      const data = await getDocs(UsersCollectionRef)
+      setUsers(data.docs.map((elem) => ({ ...elem.data(), id: elem.id })))
+    }
+
+    getUsersData()
+  }, [UsersCollectionRef])
+
+    const CreateUser = async () => {
+        await addDoc(UsersCollectionRef, { Name: name, age: age })
+        window.location.reload()
+    }
+
+    const increaseAge = async (id, age) => {
+    const userDoc = doc(db, "users", id)
+    const NewAge = { age: Number(age) + 1 }
+    await updateDoc(userDoc, NewAge)
+    window.location.reload()
+  }
+
+  const deleteUser = async (id) => {
+    const userDoc = doc(db, "users", id)
+    await deleteDoc(userDoc)
+    window.location.reload()
+  }
 
   return (
     <>
-      <div>
-        <a href="https://vitejs.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.jsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
+    <div className='text-white'>
+        <h1 className=' w-screen text-center mt-8 text-4xl font-bold'>React with FireBase</h1>
+        <p className='w-screen text-center mt-5'>Fillin the Details to Upload Data to the DataBase</p>
+        <div className='text-center mt-16'>
+            <span>Enter your Name : </span>
+                <input className='mx-4 text-black' type="text" placeholder='Name' onChange={(event) => { setName(event.target.value)}} />
+            <span>Enter your Age : </span>
+                <input className='mx-4 text-black' type="text" placeholder='Age' onChange={(event) => { setAge(event.target.value) }} />
+                <br />
+            <button onClick={CreateUser} className='bg-slate-700 m-4 p-2 w-20 rounded-md'>Upload</button>
+        </div>
+    </div>
+    <div className="text-white mt-20 mx-6">
+        <h3 className='text-xl'>
+            Users:
+        </h3>
+        <div className='grid grid-cols-2'>
+            {users.map(user => {
+                return <div className='hover:animate-pulse m-4 bg-gray-600 w-1/4 rounded-md p-2'>
+                    <p className='w-auto text-center'>{user.Name}</p>
+                    <p className='w-auto text-center'>{user.age}</p>
+                    <button onClick={() => { increaseAge(user.id, user.age) }}>Increase Age</button>
+                    <button onClick={() => { deleteUser(user.id) }}>Delete User</button>
+                </div>
+            })}
+        </div>
+    </div>
+</>
+  );
 }
 
-export default App
+export default App;
